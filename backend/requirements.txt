@@ -1,5 +1,11 @@
-# ResearchOS backend dependencies
-# Install:  python -m venv .venv && .venv/bin/pip install -r requirements.txt
+# ===========================================================================
+# ResearchOS backend — RUNTIME dependencies
+#   python -m venv venv && source venv/bin/activate
+#   pip install -r requirements.txt
+#   uvicorn app.main:app --reload --port 8000
+#
+# Test-only packages live in requirements-dev.txt.
+# ===========================================================================
 
 # --- Web framework ---------------------------------------------------------
 fastapi>=0.115,<1.0
@@ -9,15 +15,11 @@ pydantic>=2.7,<3.0
 # --- Configuration ---------------------------------------------------------
 python-dotenv>=1.0
 
-# --- HTTP clients ----------------------------------------------------------
+# --- HTTP clients (academic providers + PDF download) ----------------------
 requests>=2.32
-httpx>=0.27
 
-# --- AI provider -----------------------------------------------------------
+# --- AI provider (Google Gemini) -------------------------------------------
 google-genai>=1.0
 
-# --- PDF processing --------------------------------------------------------
+# --- PDF text extraction ---------------------------------------------------
 pypdf>=4.3
-
-# --- Testing ---------------------------------------------------------------
-pytest>=8.0

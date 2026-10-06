@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import random
+import socket
 import time
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple
@@ -112,19 +113,22 @@ def classify_error(exc: Exception) -> Tuple[bool, str, str]:
         return (
             True,
             "rate_limited",
-            "The AI service is rate limiting requests right now. Please try again in a few moments.",
+            "AI analysis is temporarily unavailable because the configured Gemini quota has "
+            "been reached. Please try again later or configure another model/API quota.",
         )
     if code in {500, 502, 503, 504} or "UNAVAILABLE" in text or "DEADLINE_EXCEEDED" in text:
         return (
             True,
             "unavailable",
-            "The AI service is temporarily unavailable. Please try again shortly.",
+            "The AI service is temporarily unavailable. ResearchOS already retried with "
+            "backoff and the fallback model — please try again shortly.",
         )
     if code in {401, 403} or "API_KEY_INVALID" in text or "PERMISSION_DENIED" in text:
         return (
             False,
             "auth_error",
-            "The AI service rejected the server's API key. Please check the server configuration.",
+            "AI analysis is unavailable because the configured GEMINI_API_KEY was rejected. "
+            "Please check the server configuration.",
         )
     if code == 404 or "NOT_FOUND" in text:
         return (
@@ -140,11 +144,18 @@ def classify_error(exc: Exception) -> Tuple[bool, str, str]:
             "The AI service rejected the request. This usually means the input was too long "
             "or malformed — try analysing a shorter paper.",
         )
-    if isinstance(exc, (ConnectionError, TimeoutError)) or "CONNECT" in text or "TIMEOUT" in text:
+    if (
+        isinstance(exc, (ConnectionError, TimeoutError, socket.gaierror))
+        or "CONNECT" in text
+        or "TIMEOUT" in text
+        or "NAME OR SERVICE NOT KNOWN" in text
+        or "TEMPORARY FAILURE IN NAME RESOLUTION" in text
+    ):
         return (
             True,
             "network",
-            "The server could not reach the AI service. Please try again.",
+            "Unable to connect to the AI service from the server (network or DNS failure). "
+            "Please try again.",
         )
     return (
         False,
@@ -184,7 +195,9 @@ class GeminiClient:
 
         if not self.configured:
             raise AIProviderError(
-                "AI analysis is not configured on the server (GEMINI_API_KEY is missing).",
+                "AI analysis is unavailable because GEMINI_API_KEY is not configured on the "
+                "server. Add it to backend/.env (or your host's environment variables) and "
+                "restart the backend.",
                 code="missing_api_key",
             )
 

@@ -115,9 +115,11 @@ class SemanticScholarSource(ResearchSource):
             abstract=item.get("abstract") or "",
             authors=authors,
             year=item.get("year"),
+            published_date=item.get("year"),
             doi=external_ids.get("DOI"),
             arxiv_id=external_ids.get("ArXiv"),
             venue=venue or None,
+            journal=venue or None,
             paper_url=(
                 f"https://www.semanticscholar.org/paper/{item['paperId']}"
                 if item.get("paperId")

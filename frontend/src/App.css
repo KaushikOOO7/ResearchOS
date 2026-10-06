@@ -139,6 +139,14 @@
   box-shadow: 0 0 0 3px rgba(79, 209, 165, 0.14);
 }
 
+.status--warn {
+  border-color: rgba(229, 181, 103, 0.28);
+}
+
+.status__label--warn {
+  color: var(--infer);
+}
+
 .status--warn .status__dot {
   background: var(--infer);
   box-shadow: 0 0 0 3px rgba(229, 181, 103, 0.14);

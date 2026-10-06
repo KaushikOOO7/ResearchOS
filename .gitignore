@@ -1,7 +1,10 @@
 # --- Secrets -----------------------------------------------------------------
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+# explicit safeties (never ignore the templates)
+!backend/.env.example
+!frontend/.env.example
 
 # --- Python ------------------------------------------------------------------
 venv/
@@ -17,6 +20,7 @@ __pycache__/
 # --- Node --------------------------------------------------------------------
 node_modules/
 dist/
+build/
 dist-ssr/
 .vite/
 npm-debug.log*

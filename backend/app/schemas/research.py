@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -58,6 +58,11 @@ class ResearchResponse(BaseModel):
         description="Human-readable explanation when no papers were returned.",
     )
     query: str
+    count: int = Field(default=0, description="Number of ranked papers returned.")
+    providers: Dict[str, str] = Field(
+        default_factory=dict,
+        description='Per-provider outcome, e.g. {"arxiv": "success", "crossref": "failed"}.',
+    )
     query_analysis: QueryAnalysis
     stats: SearchStats
     sources: List[SourceStatus] = Field(default_factory=list)

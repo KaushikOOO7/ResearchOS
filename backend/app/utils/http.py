@@ -181,6 +181,47 @@ def get_text(
 _ALLOWED_SCHEMES = {"http", "https"}
 _ALLOWED_PORTS = {None, 80, 443, 8080, 8443}
 
+#: Hosts ResearchOS knows are academic infrastructure. Requests to these are
+#: still resolved and checked against private ranges like every other host.
+ACADEMIC_HOSTS = (
+    "arxiv.org",
+    "export.arxiv.org",
+    "openalex.org",
+    "api.openalex.org",
+    "doi.org",
+    "www.doi.org",
+    "dx.doi.org",
+    "pubmed.ncbi.nlm.nih.gov",
+    "ncbi.nlm.nih.gov",
+    "eutils.ncbi.nlm.nih.gov",
+    "semanticscholar.org",
+    "www.semanticscholar.org",
+    "api.semanticscholar.org",
+    "crossref.org",
+    "api.crossref.org",
+    "biorxiv.org",
+    "medrxiv.org",
+    "ncbi.nlm.nih.gov",
+)
+
+#: Hosts that are always refused, even if DNS says they are public.
+_BLOCKED_HOSTS = {
+    "localhost",
+    "localhost.localdomain",
+    "metadata",
+    "metadata.google.internal",
+    "169.254.169.254",
+    "instance-data",
+}
+
+
+def is_academic_host(url: str) -> bool:
+    """True when ``url`` points at a known academic host (or a subdomain of one)."""
+    hostname = hostname_of(url)
+    if not hostname:
+        return False
+    return any(hostname == host or hostname.endswith(f".{host}") for host in ACADEMIC_HOSTS)
+
 
 def _is_public_ip(ip_text: str) -> bool:
     """Return True only for globally routable unicast addresses."""
@@ -238,8 +279,19 @@ def validate_public_url(url: str, provider: str = "url") -> str:
         pass  # hostname is a domain name
 
     lowered = hostname.lower()
-    if lowered in {"localhost", "localhost.localdomain"} or lowered.endswith(".local"):
-        raise UnsafeUrlError("URL points to a local hostname.")
+    if lowered in _BLOCKED_HOSTS or lowered.endswith(".local") or lowered.endswith(".internal"):
+        raise UnsafeUrlError("URL points to a local or metadata hostname.")
+
+    # Optional strict allowlist (PDF_ALLOWED_HOSTS). Left empty by default
+    # because open-access PDFs legitimately live on publisher domains — see the
+    # security section of the README for the documented compromise.
+    allowed_hosts = getattr(settings, "pdf_allowed_hosts", []) or []
+    if allowed_hosts and not any(
+        lowered == host or lowered.endswith(f".{host}") for host in allowed_hosts
+    ):
+        raise UnsafeUrlError(
+            f"Host {hostname} is not in PDF_ALLOWED_HOSTS. Add it to permit this source."
+        )
 
     try:
         infos = socket.getaddrinfo(hostname, port or 443, proto=socket.IPPROTO_TCP)

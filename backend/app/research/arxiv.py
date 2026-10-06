@@ -188,9 +188,11 @@ class ArxivSource(ResearchSource):
             abstract=abstract,
             authors=authors,
             year=year,
+            published_date=published or None,
             doi=doi,
             arxiv_id=arxiv_id,
             venue=journal_ref or "arXiv (preprint)",
+            journal=journal_ref or None,
             paper_url=abs_url or (f"https://arxiv.org/abs/{arxiv_id}" if arxiv_id else None),
             pdf_url=pdf_url,
             citation_count=None,  # arXiv exposes no citation counts

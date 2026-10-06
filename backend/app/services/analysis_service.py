@@ -27,6 +27,7 @@ from app.schemas.analysis import (
     AnalyzePaperResponse,
     PaperInput,
 )
+from app.services.cache import TTLCache
 from app.services.gemini_client import AIProviderError, GeminiClient
 from app.utils.logging_setup import get_logger
 
@@ -34,6 +35,10 @@ logger = get_logger("analysis")
 
 #: Minimum abstract length (characters) accepted for abstract-only analysis.
 _MIN_ABSTRACT_CHARS = 220
+
+#: Extracted PDF text is cached (keyed by URL) so re-analysing a paper — or a
+#: retry after an AI failure — does not download and parse the same file again.
+_pdf_cache: TTLCache = TTLCache(max_entries=32, ttl_seconds=3600)
 
 
 class AnalysisError(RuntimeError):
@@ -62,8 +67,9 @@ def analyze_paper_reference(
     client = client or GeminiClient()
     if not client.configured:
         raise AIProviderError(
-            "AI analysis is not configured on the server yet. Add GEMINI_API_KEY to "
-            "backend/.env and restart the backend.",
+            "AI analysis is unavailable because GEMINI_API_KEY is not configured on the "
+            "server. Add it to backend/.env (or your host's environment variables) and "
+            "restart the backend.",
             code="missing_api_key",
         )
 
@@ -78,7 +84,24 @@ def analyze_paper_reference(
     if pdf_url:
         try:
             logger.info("PDF extraction started")
-            pdf = extract_pdf(pdf_url)
+            cached_text = _pdf_cache.get(pdf_url)
+            if cached_text is not None:
+                logger.info("PDF text served from cache (%d characters)", len(cached_text))
+                from app.analysis.pdf_extractor import ExtractedPDF
+                from app.analysis.text_cleaner import detect_sections
+
+                sections_map, _ = detect_sections(cached_text)
+                pdf = ExtractedPDF(
+                    text=cached_text,
+                    pages=0,
+                    analyzed_pages=0,
+                    sections=sections_map,
+                    warnings=[],
+                    elapsed_ms=0,
+                    source_url=pdf_url,
+                )
+            else:
+                pdf = extract_pdf(pdf_url)
             warnings.extend(pdf.warnings)
             pages = pdf.pages
             extracted_chars = pdf.char_count
@@ -90,6 +113,7 @@ def analyze_paper_reference(
             else:
                 abstract_only = False
                 extracted_text = pdf.text
+                _pdf_cache.set(pdf_url, pdf.text)
         except PDFError as exc:
             logger.info("PDF extraction failed (%s): %s", exc.code, str(exc)[:160])
             if exc.code in {"unsafe_url", "not_a_pdf", "too_large", "encrypted"}:

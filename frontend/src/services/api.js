@@ -2,17 +2,34 @@
  * ResearchOS API service.
  *
  * Every backend call lives here — components never talk to axios directly.
- * Requests go to `/api/...` (relative) and are proxied to the FastAPI server
- * by the Vite dev server, so the same build works locally, behind a proxy,
- * and inside hosted preview environments.
+ *
+ * Base URL resolution
+ * -------------------
+ *   VITE_API_BASE_URL=https://your-backend.onrender.com  → absolute (production)
+ *   VITE_API_BASE_URL unset                              → "/api" (dev proxy)
+ *
+ * Why "/api" and not a hardcoded `http://127.0.0.1:8000` fallback: browser-facing
+ * code must never call localhost in a hosted preview or a deployed frontend —
+ * it would resolve to the visitor's own machine. Locally the Vite dev server
+ * proxies `/api/*` to the FastAPI backend (see vite.config.js), so no
+ * environment variable is needed for local development. Deployments set
+ * VITE_API_BASE_URL (see frontend/.env.example and the README).
  */
 
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "/api";
+const configuredBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").trim();
+
+/** Absolute API origin in production, `/api` behind the dev proxy locally. */
+export const API_BASE_URL = configuredBaseUrl
+  ? configuredBaseUrl.replace(/\/+$/, "")
+  : "/api";
+
+/** True when the build points at a real backend origin. */
+export const HAS_EXPLICIT_API_URL = Boolean(configuredBaseUrl);
 
 export const http = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   timeout: 180_000, // PDF download + AI analysis can legitimately take a while
   headers: { "Content-Type": "application/json" },
 });
@@ -34,8 +51,8 @@ const STATUS_FALLBACKS = {
   404: "This resource is no longer available. Run the search again.",
   413: "That paper is too large for the analysis pipeline.",
   422: "The request could not be processed. Try a different paper or query.",
-  429: "The AI service is rate limiting requests. Please try again in a moment.",
-  500: "Something went wrong on the ResearchOS server.",
+  429: "AI analysis quota has been reached. Please try again later.",
+  500: "ResearchOS API hit an internal error. Please try again.",
   502: "A service ResearchOS depends on returned an unexpected response.",
   503: "A required service is temporarily unavailable. Please try again shortly.",
   504: "The request timed out. Please try again.",
@@ -56,8 +73,7 @@ export function toApiError(error) {
   const response = error?.response;
   if (!response) {
     return new ApiError({
-      message:
-        "Could not reach the ResearchOS backend. Make sure the API server is running.",
+      message: "Unable to connect to ResearchOS API. Check your connection and that the backend is running.",
       code: "network_error",
       retryable: true,
     });
@@ -68,7 +84,7 @@ export function toApiError(error) {
   const message =
     (typeof detail === "string" ? detail : detail.message) ||
     STATUS_FALLBACKS[response.status] ||
-    "Something went wrong. Please try again.";
+    "Unexpected error. Please try again.";
 
   return new ApiError({
     message,
@@ -84,7 +100,15 @@ export async function getHealth() {
     const { data } = await http.get("/health");
     return data;
   } catch (error) {
-    throw toApiError(error);
+    const apiError = toApiError(error);
+    if (apiError.code === "network_error") {
+      // Health is the first call the app makes: make the failure explicit.
+      throw new ApiError({
+        ...apiError,
+        message: "ResearchOS API is unavailable. Make sure the backend is running.",
+      });
+    }
+    throw apiError;
   }
 }
 
@@ -104,7 +128,20 @@ export async function searchResearch(query, options = {}) {
     const { data } = await http.post("/research", payload);
     return data;
   } catch (error) {
-    throw toApiError(error);
+    const apiError = toApiError(error);
+    if (apiError.code === "network_error") {
+      throw new ApiError({
+        ...apiError,
+        message: "ResearchOS API is unavailable. Make sure the backend is running.",
+      });
+    }
+    if (apiError.status >= 500) {
+      throw new ApiError({
+        ...apiError,
+        message: "Academic search failed. Please try again.",
+      });
+    }
+    throw apiError;
   }
 }
 

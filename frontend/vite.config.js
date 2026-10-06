@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
 /**
  * Vite configuration for ResearchOS.
@@ -9,7 +9,14 @@ import { defineConfig } from "vite";
  * reverse proxy, and inside hosted preview environments (no CORS surprises, no
  * hardcoded localhost URLs in components).
  */
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Read VITE_BACKEND_URL from frontend/.env (not from the shell only), so the
+  // dev proxy target matches whatever port the backend is actually using.
+  const env = loadEnv(mode, process.cwd(), "");
+  const backendUrl =
+    env.VITE_BACKEND_URL || process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+
+  return {
   plugins: [react()],
   server: {
     host: true, // bind 0.0.0.0 so proxied/preview hosts can reach the server
@@ -20,9 +27,11 @@ export default defineConfig({
     // web server in front of the API.
     allowedHosts: true,
     proxy: {
+      // Frontend calls /api/health -> backend /health (see services/api.js).
       "/api": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
+        target: backendUrl,
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
@@ -35,4 +44,5 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: false,
   },
+  };
 });

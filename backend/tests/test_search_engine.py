@@ -103,7 +103,7 @@ def test_empty_results_produce_actionable_message():
 
     failed = run_search("quantum teleportation of coffee", sources=[FakeSource("Empty", [])])
     assert failed.papers == []
-    assert "No papers were found" in failed.message
+    assert "No relevant papers were found" in failed.message
 
 
 def test_limit_and_filters_are_applied():

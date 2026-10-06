@@ -73,6 +73,30 @@ def analysis_error_to_http(exc: AnalysisError) -> Tuple[int, ErrorResponse]:
     return status, ErrorResponse(code=exc.code, message=str(exc), retryable=exc.retryable)
 
 
+def provider_status_map(outcome: SearchOutcome) -> dict:
+    """
+    Compact provider outcome map for API consumers.
+
+    ``success``  - responded with at least one paper
+    ``empty``    - responded but matched nothing
+    ``failed``   - network / provider error (the search continued regardless)
+    ``skipped``  - not applicable to this query (e.g. PubMed for a non-biomedical
+                   topic) or missing credentials (e.g. Semantic Scholar)
+    """
+    statuses: dict = {}
+    for source in outcome.source_outcomes:
+        key = source.name.lower().replace(" ", "_")
+        if not source.ok:
+            statuses[key] = "failed"
+        elif not source.configured or source.error == "not applicable to this query":
+            statuses[key] = "skipped"
+        elif source.result_count > 0:
+            statuses[key] = "success"
+        else:
+            statuses[key] = "empty"
+    return statuses
+
+
 def build_research_response(outcome: SearchOutcome, query: str) -> ResearchResponse:
     """Convert a :class:`SearchOutcome` into the public API payload."""
     from app.models.paper import SourceStatus
@@ -81,6 +105,8 @@ def build_research_response(outcome: SearchOutcome, query: str) -> ResearchRespo
         status="success" if outcome.papers else "empty",
         message=outcome.message,
         query=query,
+        count=len(outcome.papers),
+        providers=provider_status_map(outcome),
         query_analysis=outcome.query_analysis,
         stats=outcome.stats,
         sources=[

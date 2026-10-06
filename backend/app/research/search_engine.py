@@ -33,7 +33,7 @@ from app.research.deduplicator import deduplicate
 from app.research.openalex import OpenAlexSource
 from app.research.pubmed import PubMedSource
 from app.research.query_understanding import analyze_query
-from app.research.ranker import rank_papers, weighting_notes
+from app.research.ranking import rank_papers, weighting_notes
 from app.research.semantic_scholar import SemanticScholarSource
 from app.utils.logging_setup import get_logger
 
@@ -105,7 +105,7 @@ def _no_results_message(outcomes: Sequence[SourceOutcome]) -> str:
     succeeded = [outcome for outcome in outcomes if outcome.ok and outcome.result_count > 0]
 
     if succeeded:
-        return "No paper matched the query filters. Try broadening the query or removing filters."
+        return "No relevant papers matched your filters. Try broadening the query or removing filters."
     if failed and not skipped:
         names = ", ".join(outcome.name for outcome in failed)
         return (
@@ -115,7 +115,7 @@ def _no_results_message(outcomes: Sequence[SourceOutcome]) -> str:
     if failed:
         names = ", ".join(outcome.name for outcome in failed)
         return f"Providers unavailable: {names}. No papers were retrieved for this query."
-    return "No papers were found for this query. Try rephrasing your research idea."
+    return "No relevant papers were found for this query. Try rephrasing your research idea."
 
 
 def run_search(

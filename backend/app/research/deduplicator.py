@@ -120,6 +120,12 @@ def merge_papers(papers: List[Paper]) -> Paper:
             else (other.venue or primary.venue)
         )
         primary.paper_url = primary.paper_url or other.paper_url
+        primary.published_date = primary.published_date or other.published_date
+        primary.journal = (
+            primary.journal
+            if primary.journal and "arxiv" not in primary.journal.lower()
+            else (other.journal or primary.journal)
+        )
         primary.pdf_url = primary.pdf_url or other.pdf_url
         primary.year = primary.year or other.year
         primary.type = primary.type or other.type

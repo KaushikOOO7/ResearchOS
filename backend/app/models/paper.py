@@ -50,9 +50,11 @@ class Paper(BaseModel):
     authors: List[str] = Field(default_factory=list)
     abstract: str = ""
     year: Optional[int] = None
+    published_date: Optional[str] = None
     doi: Optional[str] = None
     arxiv_id: Optional[str] = None
     venue: Optional[str] = None
+    journal: Optional[str] = None
     paper_url: Optional[str] = None
     pdf_url: Optional[str] = None
     source: str = ""
@@ -116,6 +118,9 @@ class Paper(BaseModel):
         data = self.model_dump()
         data["quality_label"] = self.quality_label
         data["authors_display"] = self.authors_display
+        # `final_score` is the field name used in the public API contract; it is
+        # the same number as `overall_score` and never a fabricated value.
+        data["final_score"] = self.overall_score
         return data
 
 

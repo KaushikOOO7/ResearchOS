@@ -32,6 +32,7 @@ async def lifespan(app: FastAPI):
     ))
     logger.info("Gemini API key: %s", describe_secret(settings.gemini_api_key))
     logger.info("Gemini model: %s", settings.gemini_model or "not set")
+    logger.info("Listening port: %s (override with PORT)", settings.port)
     if not settings.gemini_api_key:
         logger.info(
             "AI analysis is disabled until GEMINI_API_KEY is set in backend/.env"
@@ -67,26 +68,40 @@ def create_app() -> FastAPI:
     )
 
     # --- Routers -------------------------------------------------------
-    app.include_router(health.router)
-    app.include_router(research.router)
-    app.include_router(analysis.router)
+    # Every route is exposed twice: at the root (/research) and under /api
+    # (/api/research). Deployments differ (Render services, reverse proxies,
+    # serverless rewrites), and both path styles are documented in the README.
+    for router in (health.router, research.router, analysis.router):
+        app.include_router(router)
+        app.include_router(router, prefix="/api")
 
     # --- Root ----------------------------------------------------------
-    @app.get("/", tags=["meta"])
-    def root() -> dict:
+    def _service_info() -> dict:
         return {
+            "status": "healthy",
+            "service": "ResearchOS API",
             "project": "ResearchOS",
             "description": "AI Research Intelligence Platform",
             "version": VERSION,
-            "status": "running",
+            "environment": settings.environment,
             "docs": "/docs",
+            "openapi": "/openapi.json",
             "endpoints": {
-                "health": "GET /health",
-                "research": "POST /research",
-                "analyze": "POST /analyze-paper",
+                "root": "GET /",
+                "health": "GET /health  (alias: GET /api/health)",
+                "research": "POST /research  (alias: POST /api/research)",
+                "analyze": "POST /analyze-paper  (alias: POST /api/analyze-paper)",
                 "paper": "GET /papers/{paper_id}",
             },
         }
+
+    @app.get("/", tags=["meta"])
+    def root() -> dict:
+        return _service_info()
+
+    @app.get("/api", tags=["meta"], include_in_schema=False)
+    def api_root() -> dict:
+        return _service_info()
 
     # --- Error handling ------------------------------------------------
     @app.exception_handler(RequestValidationError)
@@ -125,6 +140,15 @@ app = create_app()
 
 
 if __name__ == "__main__":  # pragma: no cover
+    # Local convenience runner. Production must use:
+    #   uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    import os
+
     import uvicorn
 
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", str(settings.port))),
+        reload=os.getenv("ENVIRONMENT", "development") == "development",
+    )

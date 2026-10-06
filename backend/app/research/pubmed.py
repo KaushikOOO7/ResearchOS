@@ -153,6 +153,16 @@ class PubMedSource(ResearchSource):
         pmid = citation.findtext("PMID", default="")
         paper_url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else None
 
+        pub_date_node = None
+        if journal is not None:
+            pub_date_node = journal.find("JournalIssue/PubDate")
+        published_date = None
+        if pub_date_node is not None:
+            year_text = pub_date_node.findtext("Year", default="")
+            month_text = pub_date_node.findtext("Month", default="")
+            day_text = pub_date_node.findtext("Day", default="")
+            published_date = " ".join(part for part in (year_text, month_text, day_text) if part)
+
         subjects = [
             sanitize_external_text("".join(node.itertext()), max_chars=80)
             for node in citation.findall("MeshHeadingList/MeshHeading/DescriptorName")
@@ -163,9 +173,11 @@ class PubMedSource(ResearchSource):
             abstract=abstract,
             authors=authors,
             year=year,
+            published_date=published_date or year,
             doi=doi,
             arxiv_id=None,
             venue=venue or None,
+            journal=venue or None,
             paper_url=paper_url,
             # PubMed does not expose a reliably downloadable open PDF; PMC
             # links are provided as the paper page instead of pretending a

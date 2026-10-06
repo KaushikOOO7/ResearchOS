@@ -14,12 +14,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from app.models.paper import Paper, QueryAnalysis
-from app.utils.text import (
-    normalize_arxiv_id,
-    normalize_doi,
-    normalize_space,
-    sanitize_external_text,
-)
+from app.research.normalizer import build_paper
 
 
 @dataclass
@@ -111,65 +106,10 @@ class ResearchSource(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Normalisation helper shared by providers
+# Normalisation
+#
+# The canonical paper builder lives in ``app/research/normalizer.py`` and is
+# re-exported here so providers keep a single, short import path.
 # ---------------------------------------------------------------------------
 
-def build_paper(
-    title: str,
-    source: str,
-    abstract: str = "",
-    authors: Optional[List[str]] = None,
-    year: Optional[int] = None,
-    doi: Optional[str] = None,
-    arxiv_id: Optional[str] = None,
-    venue: Optional[str] = None,
-    paper_url: Optional[str] = None,
-    pdf_url: Optional[str] = None,
-    citation_count: Optional[int] = None,
-    is_open_access: Optional[bool] = None,
-    keywords: Optional[List[str]] = None,
-    subjects: Optional[List[str]] = None,
-    doc_type: Optional[str] = None,
-    source_score: Optional[float] = None,
-) -> Paper:
-    """
-    Build a normalised :class:`Paper` from raw provider fields.
-
-    Applies ResearchOS-wide hygiene: markup/control-character stripping,
-    whitespace collapsing, DOI/arXiv normalisation, author de-duplication and
-    a deterministic id. Missing values stay ``None`` -- nothing is invented.
-    """
-    clean_title = sanitize_external_text(title or "", max_chars=600)
-    clean_abstract = sanitize_external_text(abstract or "", max_chars=6000)
-
-    normalised_authors: List[str] = []
-    for author in authors or []:
-        name = normalize_space(str(author or ""))
-        if name and name not in normalised_authors:
-            normalised_authors.append(name)
-
-    clean_keywords = []
-    for keyword in keywords or []:
-        value = sanitize_external_text(str(keyword or ""), max_chars=80).lower()
-        if value and value not in clean_keywords:
-            clean_keywords.append(value)
-
-    return Paper(
-        title=clean_title,
-        abstract=clean_abstract,
-        authors=normalised_authors[:40],
-        year=year if isinstance(year, int) and 1800 < year < 2100 else None,
-        doi=normalize_doi(doi) or None,
-        arxiv_id=normalize_arxiv_id(arxiv_id) or None,
-        venue=sanitize_external_text(venue or "", max_chars=200) or None,
-        paper_url=paper_url or None,
-        pdf_url=pdf_url or None,
-        source=source,
-        sources=[source],
-        citation_count=citation_count if isinstance(citation_count, int) and citation_count >= 0 else None,
-        is_open_access=is_open_access,
-        keywords=clean_keywords[:12],
-        subjects=[sanitize_external_text(str(s), max_chars=80) for s in (subjects or [])][:8],
-        type=doc_type,
-        source_score=source_score if source_score is not None else 70.0,
-    )
+__all__ = ["ResearchSource", "SourceOutcome", "build_paper"]

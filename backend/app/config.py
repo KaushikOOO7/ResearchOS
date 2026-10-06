@@ -103,7 +103,7 @@ class Settings:
         default_factory=lambda: _env("GEMINI_MODEL", "gemini-3.8-flash")
     )
     gemini_fallback_model: str = field(
-        default_factory=lambda: _env("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash")
+        default_factory=lambda: _env("GEMINI_FALLBACK_MODEL", "gemini-3.7-flash")
     )
     gemini_max_output_tokens: int = field(
         default_factory=lambda: _env_int("GEMINI_MAX_OUTPUT_TOKENS", 8192)
@@ -158,6 +158,13 @@ class Settings:
     )
 
     # --- PDF / analysis limits --------------------------------------------
+    # Optional strict allowlist of hosts permitted for PDF downloads. Empty
+    # (default) means "any public host", which is required in practice because
+    # open-access PDFs are served from thousands of publisher domains. Private,
+    # loopback, link-local and reserved addresses are ALWAYS blocked.
+    pdf_allowed_hosts: List[str] = field(
+        default_factory=lambda: [host.lower() for host in _env_list("PDF_ALLOWED_HOSTS", [])]
+    )
     pdf_max_bytes: int = field(
         default_factory=lambda: _env_int("PDF_MAX_BYTES", 25 * 1024 * 1024)
     )
@@ -188,6 +195,7 @@ class Settings:
             "CORS_ORIGIN_REGEX", r"^https://([a-z0-9-]+\.)*(e2b\.app|arena\.ai)$"
         )
     )
+    port: int = field(default_factory=lambda: _env_int("PORT", 8000))
     log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
     environment: str = field(default_factory=lambda: _env("ENVIRONMENT", "development"))
 

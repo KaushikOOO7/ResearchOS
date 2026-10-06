@@ -49,7 +49,7 @@ def fake_search(monkeypatch):
             doc_type="journal-article",
         ),
     ]
-    from app.research.ranker import rank_papers
+    from app.research.ranking import rank_papers
     from app.research.query_understanding import analyze_query
     from app.config import RankingWeights
 
@@ -81,7 +81,8 @@ class TestMetaEndpoints:
     def test_root(self, client):
         payload = client.get("/").json()
         assert payload["project"] == "ResearchOS"
-        assert payload["status"] == "running"
+        assert payload["service"] == "ResearchOS API"
+        assert payload["status"] == "healthy"
 
     def test_health_reports_capabilities_without_secrets(self, client):
         payload = client.get("/health").json()

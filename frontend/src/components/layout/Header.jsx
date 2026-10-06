@@ -1,4 +1,6 @@
-import { LoaderCircle, Sparkle } from "lucide-react";
+import { LoaderCircle, Sparkle, TriangleAlert } from "lucide-react";
+
+import { HAS_EXPLICIT_API_URL } from "../../services/api";
 
 const NAV_ITEMS = [
   { id: "research", label: "Research" },
@@ -18,6 +20,11 @@ export default function Header({
   const backendOnline = health.status === "ready";
   const aiReady = backendOnline && health.data?.gemini_configured;
   const networkOffline = backendOnline && health.data?.network?.internet === false;
+  // A deployed build without VITE_API_BASE_URL falls back to the relative
+  // "/api" path, which only works behind the dev proxy. Warn instead of
+  // failing silently.
+  const missingApiUrl =
+    import.meta.env.PROD && !HAS_EXPLICIT_API_URL && health.status !== "ready";
 
   const statusLabel =
     health.status === "loading"
@@ -72,6 +79,17 @@ export default function Header({
             </button>
           ))}
         </nav>
+
+        {missingApiUrl && (
+          <span
+            className="status status--warn"
+            role="status"
+            title="Set VITE_API_BASE_URL to your deployed backend URL (e.g. https://researchos-api.onrender.com) and rebuild."
+          >
+            <TriangleAlert size={13} aria-hidden="true" />
+            <span className="status__label status__label--warn">VITE_API_BASE_URL not set</span>
+          </span>
+        )}
 
         <div
           className={`status status--${statusTone}`}

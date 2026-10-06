@@ -7,14 +7,14 @@ import pytest
 from app.config import RankingWeights
 from app.research.base import build_paper
 from app.research.query_understanding import analyze_query
-from app.research.ranker import (
+from app.research.ranking import (
     combine_overall,
     compute_citation,
     compute_quality,
     compute_recency,
     rank_papers,
 )
-from app.research.ranker import weighting_notes
+from app.research.ranking import weighting_notes
 
 WEIGHTS = RankingWeights()
 

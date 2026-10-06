@@ -91,6 +91,7 @@ class CrossrefSource(ResearchSource):
         venue = container[0] if isinstance(container, list) and container else None
 
         year = self._extract_year(item)
+        published_date = self._extract_date_parts(item)
 
         authors: List[str] = []
         for author in item.get("author") or []:
@@ -125,8 +126,10 @@ class CrossrefSource(ResearchSource):
             abstract=item.get("abstract") or "",
             authors=authors,
             year=year,
+            published_date=published_date or year,
             doi=item.get("DOI"),
             venue=venue or item.get("publisher"),
+            journal=venue or None,
             paper_url=item.get("URL") or (
                 f"https://doi.org/{item['DOI']}" if item.get("DOI") else None
             ),
@@ -139,6 +142,15 @@ class CrossrefSource(ResearchSource):
             source_score=self.source_score,
             source=self.name,
         )
+
+    @staticmethod
+    def _extract_date_parts(item: Dict[str, Any]) -> Optional[str]:
+        """Return the raw ``date-parts`` array for the best available date key."""
+        for key in ("issued", "published-print", "published-online", "published"):
+            node = item.get(key)
+            if isinstance(node, dict) and node.get("date-parts"):
+                return node["date-parts"]  # normalizer converts [Y, M, D]
+        return None
 
     @staticmethod
     def _extract_year(item: Dict[str, Any]) -> Optional[int]:
