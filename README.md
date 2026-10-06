@@ -198,6 +198,19 @@ ResearchOS/
 
 Requirements: **Python 3.11+**, **Node.js 18+**, internet access (academic APIs).
 
+### One-command start
+
+```bash
+./run.sh          # macOS / Linux
+run.bat           # Windows
+```
+
+The launcher creates `backend/.env` from the example, sets up a virtual environment,
+installs both dependency sets on first run, then starts the API (port 8000) and the web
+app (port 5173). Add your `GEMINI_API_KEY` to `backend/.env` to enable AI analysis.
+
+### Manual setup
+
 ### Backend
 
 ```bash
