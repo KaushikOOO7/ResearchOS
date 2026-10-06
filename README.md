@@ -255,7 +255,7 @@ analysis; search works without any key.
 | Endpoint | Description |
 | --- | --- |
 | `GET /` | Service metadata and endpoint index |
-| `GET /health` | Health + capability report (which providers and AI are configured) |
+| `GET /health` | Health + capability report (which providers and AI are configured, plus an outbound-connectivity preflight so a blocked-egress deployment explains itself) |
 | `POST /research` | `{query, limit?, sources?, year_from?, open_access_only?}` → ranked papers, query analysis, pipeline stats, per-source status, ranking notes |
 | `POST /analyze-paper` | `{title, abstract, pdf_url, ...}` → structured analysis + provenance metadata |
 | `GET /papers/{paper_id}` | Paper detail for papers from a recent search |
@@ -299,6 +299,7 @@ Errors use a consistent envelope and never leak stack traces:
 | Invalid API key / unknown model | Not retried; clear message, no key material in logs or responses |
 | Malformed AI JSON | One repair attempt, then a friendly "could not read the analysis" error |
 | Scanned/encrypted/oversized PDF | Specific, user-facing message; scanned PDFs fall back to the abstract and say so |
+| No outbound internet (hosted sandbox, corporate proxy) | `/health` probes a provider endpoint (cached 60s) and the UI says plainly that academic sources cannot be reached here instead of showing a misleading "no results" |
 | Unhandled server error | Logged in full server-side, returned as a generic retryable message |
 
 ## Observability

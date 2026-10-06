@@ -139,6 +139,15 @@ export default function AboutPage({ health }) {
               AI analysis ({healthData.gemini_model}) —{" "}
               {healthData.gemini_configured ? "configured" : "no API key configured"}
             </li>
+            {healthData.network && (
+              <li>
+                <span className={healthData.network.internet ? "dot dot--ok" : "dot dot--off"} />
+                outbound internet access —{" "}
+                {healthData.network.internet
+                  ? `reachable (${healthData.network.detail})`
+                  : `blocked (${healthData.network.detail})`}
+              </li>
+            )}
             {Object.entries(healthData.providers || {}).map(([name, enabled]) => (
               <li key={name}>
                 <span className={enabled ? "dot dot--ok" : "dot dot--off"} />

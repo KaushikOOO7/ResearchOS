@@ -97,6 +97,26 @@ class TestMetaEndpoints:
             for value in payload["providers"].values()
         )
 
+    def test_health_reports_blocked_network_egress(self, client, monkeypatch):
+        import app.api.health as health_api
+
+        monkeypatch.setattr(
+            health_api,
+            "get_connectivity",
+            lambda *a, **k: {
+                "internet": False,
+                "checked_host": "api.openalex.org",
+                "detail": "outbound HTTPS connection failed (SSLError)",
+                "elapsed_ms": 14,
+                "cached": False,
+            },
+        )
+
+        payload = client.get("/health").json()
+        assert payload["network"]["internet"] is False
+        assert payload["network"]["checked_host"] == "api.openalex.org"
+        assert any("outbound network access" in warning.lower() for warning in payload["warnings"])
+
     def test_validation_error_is_friendly(self, client):
         response = client.post("/research", json={"query": "ab"})
         assert response.status_code == 422

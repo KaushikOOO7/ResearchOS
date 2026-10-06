@@ -6,7 +6,8 @@ from fastapi import APIRouter
 
 from app.analysis.paper_analyzer import analyzer_status
 from app.config import settings
-from app.schemas.common import HealthResponse
+from app.schemas.common import HealthResponse, NetworkStatus
+from app.utils.connectivity import get_connectivity
 from app.version import VERSION
 
 router = APIRouter(tags=["health"])
@@ -30,8 +31,15 @@ def health() -> HealthResponse:
     """
     analysis = analyzer_status()
     summary = settings.public_summary()
+    connectivity = get_connectivity()
 
     warnings = []
+    if not connectivity["internet"]:
+        warnings.append(
+            "No outbound network access from this deployment "
+            f"({connectivity['detail']}), so academic sources cannot be queried here. "
+            "Run the backend on a machine with internet access to retrieve live papers."
+        )
     if not analysis["configured"]:
         warnings.append(
             "AI analysis is disabled: GEMINI_API_KEY is not configured on the server."
@@ -48,6 +56,7 @@ def health() -> HealthResponse:
         gemini_configured=analysis["configured"],
         gemini_model=analysis["model"],
         providers=summary["providers"],
+        network=NetworkStatus(**connectivity),
         features=_FEATURES,
         warnings=warnings,
     )

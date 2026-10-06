@@ -139,6 +139,11 @@
   box-shadow: 0 0 0 3px rgba(79, 209, 165, 0.14);
 }
 
+.status--warn .status__dot {
+  background: var(--infer);
+  box-shadow: 0 0 0 3px rgba(229, 181, 103, 0.14);
+}
+
 .status--down .status__dot {
   background: var(--danger);
   box-shadow: 0 0 0 3px rgba(255, 112, 112, 0.14);
@@ -184,6 +189,14 @@
   background: var(--infer-soft);
   color: #f0d3a1;
   font-size: 13px;
+}
+
+.hero__notice--warn {
+  border-color: rgba(255, 112, 112, 0.28);
+  background: var(--danger-soft);
+  color: #ffc9c9;
+  max-width: 78ch;
+  text-align: left;
 }
 
 /* -------------------------------------------------------------- search --- */

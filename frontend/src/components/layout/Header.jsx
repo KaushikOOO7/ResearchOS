@@ -17,15 +17,20 @@ export default function Header({
 }) {
   const backendOnline = health.status === "ready";
   const aiReady = backendOnline && health.data?.gemini_configured;
+  const networkOffline = backendOnline && health.data?.network?.internet === false;
 
   const statusLabel =
     health.status === "loading"
       ? "Connecting to backend…"
-      : backendOnline
-        ? aiReady
-          ? "AI analysis online"
-          : "Search online · AI key missing"
-        : "Backend unreachable";
+      : !backendOnline
+        ? "Backend unreachable"
+        : networkOffline
+          ? "API online · no internet egress"
+          : aiReady
+            ? "AI analysis online"
+            : "Search online · AI key missing";
+
+  const statusTone = !backendOnline ? "down" : networkOffline ? "warn" : "ok";
 
   return (
     <header className="app-header">
@@ -69,9 +74,13 @@ export default function Header({
         </nav>
 
         <div
-          className={`status ${backendOnline ? "status--ok" : "status--down"}`}
+          className={`status status--${statusTone}`}
           role="status"
-          title={health.data?.warnings?.join(" ") || ""}
+          title={
+            health.data?.warnings?.join(" ") ||
+            health.data?.network?.detail ||
+            "Backend reachable"
+          }
         >
           {health.status === "loading" ? (
             <LoaderCircle size={13} className="spin" aria-hidden="true" />

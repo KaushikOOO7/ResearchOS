@@ -86,6 +86,7 @@ export default function ResearchPage({
     (research.data.stats?.providers_succeeded ?? 0) === 0 &&
     (research.data.stats?.providers_queried ?? 0) > 0;
 
+  const networkOffline = health.status === "ready" && health.data?.network?.internet === false;
   const analyzingId = analysis.status === "loading" ? analysis.paper?.id : null;
   const showLanding = research.status === "idle";
 
@@ -110,6 +111,16 @@ export default function ResearchPage({
           status={research.status}
           elapsed={research.elapsed}
         />
+
+        {networkOffline && (
+          <p className="hero__notice hero__notice--warn" role="note">
+            <CircleAlert size={14} aria-hidden="true" />
+            This deployment has no outbound internet access, so academic sources
+            (arXiv, OpenAlex, Crossref, PubMed) cannot be queried here. Run the
+            backend locally with internet access to retrieve live papers — the
+            pipeline itself is fully wired and tested.
+          </p>
+        )}
 
         {health.status === "ready" && !health.data?.gemini_configured && (
           <p className="hero__notice" role="note">

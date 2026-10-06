@@ -20,6 +20,16 @@ class ErrorResponse(BaseModel):
     retryable: bool = False
 
 
+class NetworkStatus(BaseModel):
+    """Result of the outbound connectivity preflight."""
+
+    internet: bool = True
+    checked_host: Optional[str] = None
+    detail: Optional[str] = None
+    elapsed_ms: Optional[int] = None
+    cached: bool = False
+
+
 class HealthResponse(BaseModel):
     """``GET /health`` payload."""
 
@@ -30,5 +40,6 @@ class HealthResponse(BaseModel):
     gemini_configured: bool
     gemini_model: Optional[str] = None
     providers: Dict[str, bool] = Field(default_factory=dict)
+    network: Optional[NetworkStatus] = None
     features: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
