@@ -78,6 +78,14 @@ export default function ResearchPage({
 
   const papers = research.data?.papers ?? [];
 
+  // Distinguish "nothing matched" from "every provider failed": the UI should
+  // tell the user which one happened instead of blaming their query.
+  const sourcesUnreachable =
+    Boolean(research.data) &&
+    papers.length === 0 &&
+    (research.data.stats?.providers_succeeded ?? 0) === 0 &&
+    (research.data.stats?.providers_queried ?? 0) > 0;
+
   const analyzingId = analysis.status === "loading" ? analysis.paper?.id : null;
   const showLanding = research.status === "idle";
 
@@ -156,7 +164,11 @@ export default function ResearchPage({
           <PipelineSummary data={research.data} />
           <EmptyState
             icon={<SearchX size={20} />}
-            title="No papers matched your query"
+            title={
+              sourcesUnreachable
+                ? "Academic sources could not be reached"
+                : "No papers matched your query"
+            }
             description={
               research.data?.message ||
               "Try a broader phrasing, remove the year filter, or disable the open-access-only option."
