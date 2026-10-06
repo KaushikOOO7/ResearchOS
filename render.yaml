@@ -1,0 +1,43 @@
+# ===========================================================================
+# Render Blueprint for the ResearchOS backend (FastAPI).
+#
+#   1. Push this repository to GitHub.
+#   2. Render → New → Blueprint → select the repo (Render reads this file).
+#   3. Set GEMINI_API_KEY (and optionally the other secrets) in the dashboard.
+#   4. Deploy, then copy the service URL into VERCEL's VITE_API_BASE_URL.
+#
+# Secrets are intentionally NOT stored here: `sync: false` makes Render prompt
+# for them at deploy time so nothing sensitive is committed to git.
+# ===========================================================================
+
+services:
+  - type: web
+    name: researchos-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # --- Secrets / environment-specific values (set in the dashboard) -----
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_FALLBACK_MODEL
+        value: gemini-3.7-flash
+      # --- Non-secret tuning (safe to version) -----------------------------
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: RESEARCH_MAX_RESULTS
+        value: "30"
+      - key: RESEARCH_TARGET_CANDIDATES
+        value: "90"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
