@@ -1,0 +1,7 @@
+{
+  "name": "ResearchOS",
+  "description": "AI Research Intelligence Platform - Discover papers, analyze architectures, limitations, failure modes, and research gaps.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

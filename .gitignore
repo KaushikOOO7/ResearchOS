@@ -1,5 +1,23 @@
+# Environment & Secrets
 .env
+.env.*
+!.env.example
+
+# Python
 venv/
+.venv/
 __pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node.js
 node_modules/
 dist/
+build/
+.oxlintrc.json
+
+# Operating System
+.DS_Store
+Thumbs.db
